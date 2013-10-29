@@ -2,16 +2,34 @@
 
 from django.http import HttpResponse
 from django.shortcuts import render
-# from maps.models import Map
+from maps.models import Earthquake, Setting
 
 def index(request):
-  # map = Map.objects.all()  
+
+  settings = Setting.objects.all()  
   # context = {'map': map}
   context = {}
   return render(request, 'maps/index.html', context)
 
+
 def earthquakes(request):
-  url = 'http://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_month.geojson'
-  import requests
-  data = requests.get(url)
-  return HttpResponse(data, mimetype='application/json')
+
+  count = Earthquake.objects.count()
+
+  if count > 0:
+    earthquakes = Earthquake.objects.latest('cached_at')
+    cached_at = earthquakes.cached_at
+
+  import datetime, pytz
+  utc = pytz.UTC
+  cache_interval = Setting.objects.get(name='geojson_cache_interval').value  
+  cache_time = utc.localize(datetime.datetime.utcnow() - datetime.timedelta(minutes=int(cache_interval)))
+
+  if ((count == 0) or (cached_at < cache_time)):
+    import requests
+    url = Setting.objects.get(name='geojson_url').value
+    response = requests.get(url)
+    earthquakes = Earthquake(geojson=response.content)
+    earthquakes.save()
+
+  return HttpResponse(earthquakes.geojson, mimetype='application/json')
