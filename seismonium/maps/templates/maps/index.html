@@ -8,22 +8,159 @@
       body { height: 100%; margin: 0; padding: 0 }
       #map-canvas { height: 100% }
     </style>
+    <script src="http://code.jquery.com/jquery-1.10.1.min.js"></script>
+    <script src="http://code.jquery.com/jquery-migrate-1.2.1.min.js"></script>
+    <script type="text/javascript" src="{% static "js/MIDI/AudioDetect.js" %}"></script>
+    <script type="text/javascript" src="{% static "js/MIDI/LoadPlugin.js" %}"></script>
+    <script type="text/javascript" src="{% static "js/MIDI/Plugin.js" %}"></script>
+    <script type="text/javascript" src="{% static "js/MIDI/Player.js" %}"></script>
+    <script type="text/javascript" src="{% static "js/Window/DOMLoader.XMLHttp.js" %}"></script>
+    <script type="text/javascript" src="{% static "js/Window/DOMLoader.script.js" %}"></script>
+    <script type="text/javascript" src="{% static "inc/Base64.js" %}"></script>
+    <script type="text/javascript" src="{% static "inc/base64binary.js" %}"></script>
     <script type="text/javascript" src="https://maps.googleapis.com/maps/api/js?key=AIzaSyD2LFvCw0hdo2-nmYt3i9OJwqxQrWb9hfE&sensor=false">
     </script>
     <script type="text/javascript">
+      var data = null;
+      var map = null;
+      var circles = new Array();
+      var nextCircleIndex = 0;
+      var debugMode = true;
+      var intervalId = null;
+      var isPlaying = false;
+      var currentTime = 0;
+      var startTime = 0;
+      var stopTime = 0;
+      var nextFeatureIndex = 0;
+      function debug(value) {
+        if (debugMode == true)
+          if (console && console.log) 
+            console.log(value);
+      }
+      function save(_data) { 
+        debug("before save");
+        data = _data 
+        nextFeatureIndex = data.metadata.count-1;
+        stopTime = data.features[0].properties.time;
+        startTime = data.features[nextFeatureIndex].properties.time;
+        currentTime = startTime;
+        debug("after save");
+      }
+/*
+      function play() {
+        debug('before #play');
+        var nextFeature = data.features[nextFeatureIndex];
+        debug(nextFeature.properties.time + '==' + currentTime);
+        if (nextFeature.properties.time == currentTime) {
+          debug(nextFeature);
+          nextFeatureIndex -= 1;
+        }
+        currentTime += 1; // ever s, add a ms
+      }
+*/
+      function plotFeature(feature) {
+        debug('before #plotFeature');
+        var latitude = feature.geometry.coordinates[1];
+        var longitude = feature.geometry.coordinates[0];
+        var coordinates = new google.maps.LatLng(latitude, longitude);
+        var magnitude = feature.properties.mag;
+debug(coordinates);
+        var radius = magnitude * 100000;
+        var circleOptions = {
+          strokeColor: '#FF0000',
+          strokeOpacity: 0.8,
+          strokeWeight: 2,
+          fillColor: '#FF0000',
+          fillOpacity: 0.35,
+          map: map,
+          center: coordinates,
+          radius: radius
+        }
+        var circle = new google.maps.Circle(circleOptions);
+        circles[nextCircleIndex] = circle;
+        nextCircleIndex += 1;
+        if (nextCircleIndex >= 30) circles[nextCircleIndex-30].setMap(null);
+        var content = "<h3>"+feature.properties.place+"</h3>";
+        var depth = feature.geometry.coordinates[2];
+        var date = new Date(feature.properties.time);
+        content += "<div>Date: " + date.toUTCString() + "</div>";
+        content += "<div>Depth: " + depth + " km</div>";
+        content += "<div>Magnitude: " + feature.properties.mag + "</div>";
+        content += "<div><a href=\""+feature.properties.url+"\" target=\"_blank\">More &raquo;<a/></div>";
+        var infoWindow = new google.maps.InfoWindow({content: content});
+        google.maps.event.addListener(circle, 'click', function() {
+          infoWindow.setPosition(coordinates);
+          infoWindow.open(map);
+        });
+                        var delay = 0; // play one note every quarter second
+                        var note = 100 - Math.floor(depth); // the MIDI note
+                        var velocity = Math.floor(feature.properties.mag * 24);
+                        MIDI.setVolume(0, velocity);
+                        MIDI.noteOn(0, note, velocity, delay);
+                        //MIDI.noteOff(0, note, delay + 0.75);
+        debug('after #plotFeature');
+      }
+      function play() {
+        debug('before #play');
+        var nextFeature = data.features[nextFeatureIndex];
+        console.log(nextFeature);
+        plotFeature(nextFeature);
+        nextFeatureIndex -= 1;
+        debug('after #play');
+      }
+      function togglePlayer() {
+        debug("before togglePlayer()");
+        if (isPlaying == false) {
+          intervalId = window.setInterval(play, 1000);
+          isPlaying = true;
+        } else {
+          clearInterval(intervalId); 
+          isPlaying = false;
+        }
+        debug("after togglePlayer()");
+      }
       function initialize() {
           var mapOptions = {
-          center: new google.maps.LatLng(-34.397, 150.644),
-          zoom: 8,
-          mapTypeId: google.maps.MapTypeId.ROADMAP
+          center: new google.maps.LatLng(0,0),
+          zoom: 2,
+          disableDefaultUI: true,
+          zoomControl: true,
+          zoomControlOptions: {
+            style: google.maps.ZoomControlStyle.SMALL
+          },
+          mapTypeId: google.maps.MapTypeId.SATELLITE
         };
-
-        var map = new google.maps.Map(document.getElementById("map-canvas"), mapOptions);
+        map = new google.maps.Map(document.getElementById("map-canvas"), mapOptions);
+        $.ajax({url: "/earthquakes"}).done(
+          function(data) { 
+            debug("before ajax#done")
+            save(data);
+            google.maps.event.addDomListener(map, 'click', 
+              function() { 
+                togglePlayer();
+              });
+            debug("after ajax#done");
+          }
+        );
       }
       google.maps.event.addDomListener(window, 'load', initialize);
+window.onload = function () {
+        MIDI.loadPlugin({
+                soundfontUrl: "{% static "soundfont/" %}",
+                instrument: "acoustic_grand_piano"
+/*                callback: function() {
+                        var delay = 0; // play one note every quarter second
+                        var note = 50; // the MIDI note
+                        var velocity = 127; // how hard the note hits
+                        // play the note
+                        MIDI.setVolume(0, 127);
+                        MIDI.noteOn(0, note, velocity, delay);
+                        MIDI.noteOff(0, note, delay + 0.75);
+                }
+*/
+        });
+};
     </script>
-    <script type="text/javascript" src="{% static "js/MIDI/AudioDetect.js" %}"></script>
-    <!-- TODO/SEAN: insert rest of MIDI.js -->
   </head>
   <body>
     <div id="map-canvas"></div>
