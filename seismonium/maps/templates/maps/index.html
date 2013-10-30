@@ -79,7 +79,7 @@ debug(coordinates);
         var circle = new google.maps.Circle(circleOptions);
         circles[nextCircleIndex] = circle;
         nextCircleIndex += 1;
-        if (nextCircleIndex >= 30) circles[nextCircleIndex-30].setMap(null);
+        // if (nextCircleIndex >= 30) circles[nextCircleIndex-30].setMap(null);
         var content = "<h3>"+feature.properties.place+"</h3>";
         var depth = feature.geometry.coordinates[2];
         var date = new Date(feature.properties.time);
@@ -95,6 +95,7 @@ debug(coordinates);
                         var delay = 0; // play one note every quarter second
                         var note = 100 - Math.floor(depth); // the MIDI note
                         var velocity = Math.floor(feature.properties.mag * 24);
+                        if (velocity < 21) velocity = 21;
                         MIDI.setVolume(0, velocity);
                         MIDI.noteOn(0, note, velocity, delay);
                         //MIDI.noteOff(0, note, delay + 0.75);
