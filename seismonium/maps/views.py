@@ -32,4 +32,4 @@ def earthquakes(request):
     earthquakes = Earthquake(geojson=response.content)
     earthquakes.save()
 
-  return HttpResponse(earthquakes.geojson, mimetype='application/json')
+  return HttpResponse(earthquakes.geojson, content_type='application/json')
