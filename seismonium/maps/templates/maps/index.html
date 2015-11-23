@@ -23,10 +23,12 @@
     <script type="text/javascript">
       var data = null;
       var map = null;
+      var rect = null;
       var circles = new Array();
       var nextCircleIndex = 0;
       var debugMode = true;
-      var intervalId = null;
+      var playIntervalId = null;
+      var fadeIntervalId = null;
       var isPlaying = false;
       var currentTime = 0;
       var startTime = 0;
@@ -65,7 +67,7 @@
         var coordinates = new google.maps.LatLng(latitude, longitude);
         var magnitude = feature.properties.mag;
 debug(coordinates);
-        var radius = magnitude * 100000;
+        var radius = magnitude * 10000;
         var circleOptions = {
           strokeColor: '#FF0000',
           strokeOpacity: 0.8,
@@ -102,41 +104,80 @@ debug(coordinates);
         debug('after #plotFeature');
       }
       function play() {
+        var r = Math.floor((Math.random() * 10) + 1);
+        if ((r % 2) == 0) return;
         debug('before #play');
         var nextFeature = data.features[nextFeatureIndex];
         console.log(nextFeature);
         plotFeature(nextFeature);
         nextFeatureIndex -= 1;
         debug('after #play');
+        //console.log("rect.fillOpacity");
+        //console.log(rect.fillOpacity);
+        //rect.setOptions({fillOpacity: rect.fillOpacity - 0.01});
+        //rect.fillOpacity -= 1.0;
+        //console.log(rect.fillOpacity);
+      }
+      function fade() {
+        debug('before #fade');
+        rect.setOptions({fillOpacity: rect.fillOpacity - 0.001});
       }
       function togglePlayer() {
         debug("before togglePlayer()");
         if (isPlaying == false) {
-          intervalId = window.setInterval(play, 1000);
+          fadeIntervalId = window.setInterval(fade, 1000);
+          playIntervalId = window.setInterval(play, 1000);
           isPlaying = true;
         } else {
-          clearInterval(intervalId); 
+          clearInterval(fadeIntervalId); 
+          clearInterval(playIntervalId); 
           isPlaying = false;
         }
         debug("after togglePlayer()");
       }
       function initialize() {
           var mapOptions = {
-          center: new google.maps.LatLng(0,0),
-          zoom: 2,
+          center: new google.maps.LatLng(37.773972,-122.431297),
+          zoom: 9,
           disableDefaultUI: true,
           zoomControl: true,
           zoomControlOptions: {
             style: google.maps.ZoomControlStyle.SMALL
           },
-          mapTypeId: google.maps.MapTypeId.SATELLITE
+          mapTypeId: google.maps.MapTypeId.HYBRID
         };
         map = new google.maps.Map(document.getElementById("map-canvas"), mapOptions);
+        var rectOptions = {
+          bounds: {
+            north: 90.0,
+            south: -90.0,
+            east: 180.0,
+            west: -180.0
+          },
+          strokeColor: '#000000',
+          strokeOpacity: 1.0,
+          strokeWeight: 2,
+          fillColor: '#000000',
+          fillOpacity: 1.0,
+          map: map
+        }
+
+        rect = new google.maps.Rectangle(rectOptions);
+console.log("==");
+console.log(rect);
+console.log("===");
+
         $.ajax({url: "/earthquakes"}).done(
           function(data) { 
             debug("before ajax#done")
             save(data);
+            /*
             google.maps.event.addDomListener(map, 'click', 
+              function() { 
+                togglePlayer();
+              });
+            */
+            google.maps.event.addDomListener(rect, 'click', 
               function() { 
                 togglePlayer();
               });
