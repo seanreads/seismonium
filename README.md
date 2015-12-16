@@ -1,4 +1,4 @@
-seismonium (aka earth chimes)
+Seismonium (aka Earth Chimes submission to Currents 2016: http://currentsnewmedia.org/festivals/currents-2016/)
 ==========
 
 TODO:
@@ -19,15 +19,15 @@ Publicly available data feeds from the U.S. Geological Survey provide data point
 
 The data translation is as follows:
 
-Quake Depth → Note Pitch
-Quake Magnitude → Circle Size and Sound Volume
+* Quake Depth → Note Pitch
+* Quake Magnitude → Circle Size and Sound Volume
 
 The data contains earthquake events spanning 14+ years. The video of Earth Chimes plays back the events over the course of 5 minutes per geographic location.
 
 Technologies
 ============
 
-Apple Quicktime
-Google Maps
-MIDI.js
-Python/Django
+* Apple Quicktime
+* Google Maps
+* MIDI.js
+* Python/Django
