@@ -1,4 +1,4 @@
-Seismonium (aka Earth Chimes submission to Currents 2016: http://currentsnewmedia.org/festivals/currents-2016/)
+SEISMONIUM (aka Earth Chimes submission to Currents 2016: http://currentsnewmedia.org/festivals/currents-2016/)
 ==========
 
 TODO:
